@@ -1,13 +1,13 @@
 def toLowercase(text):
     return text.lower()
 
+
 def removeLinks(text):
     import re
     # remove links starting with http/https
-    text = re.sub(r'https?:\/\/(www\.)?[-a-zA-Z0–9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0–9@:%_\+.~#?&//=]*)', '', text, flags=re.MULTILINE) 
-
+    text = re.sub(r"http\S+", "", text)
     # remove other links
-    text = re.sub(r'[-a-zA-Z0–9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0–9@:%_\+.~#?&//=]*)', '', text, flags=re.MULTILINE)
+    text = re.sub(r"[-a-zA-Z0–9@:%._\+~#=]\.\S+", "", text)
     return text
 
 def removeMentions(text):
