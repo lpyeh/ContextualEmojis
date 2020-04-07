@@ -7,7 +7,7 @@ def removeLinks(text):
     # remove links starting with http/https
     text = re.sub(r"http\S+", "", text)
     # remove other links
-    text = re.sub(r"[-a-zA-Z0–9@:%._\+~#=]\.\S+", "", text)
+    text = re.sub(r"[-a-zA-Z0–9@:%._\+~#=]+\.[^\s\.]\S+", "", text)
     return text
 
 def removeMentions(text):
