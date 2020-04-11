@@ -3,6 +3,7 @@ import pandas as pd
 import sys
 import nltk
 import math
+import numpy as np
 
 nltk.download('stopwords')
 
@@ -27,7 +28,16 @@ for path in filenames:
             tweetFile.drop(i, axis=0, inplace=True)
         else:
             # otherwise, clean the tweet
-            tweetFile["text"][i] = cleanTweet(row["text"])
+            cleaned = cleanTweet(row["text"])
+            # if the tweet is now empty, remove it
+            if cleaned == "":
+                tweetFile.drop(i, axis=0, inplace=True)
+            else:
+                tweetFile["text"][i] = cleanTweet(row["text"])
+    # add columns for each emotion
+    #emotions = ["anger", "disgust", "fear", "happiness", "sadness", "surprise"]
+    #for emotion in emotions:
+    #    tweetFile[emotion] = np.nan
 
     # write out a new cleaned csv with fname: originalFname_cleaned.csv
     oldFname = path.split(".")[0]
