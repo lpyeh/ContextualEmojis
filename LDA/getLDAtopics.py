@@ -7,6 +7,7 @@ from sklearn import svm
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.pipeline import Pipeline
+from sklearn.metrics import f1_score
 import sys
 import numpy as np
 from collections import defaultdict
@@ -17,8 +18,8 @@ num_features = 5000
 num_topics = 5
 num_top_words = 10
 num_top_documents = 0
-# keep track of the total sum of each number of topics
-sums = defaultdict(list)
+# loop through this and get topics for each number provided
+topic_nums = [20]
 
 #def display_topics(model, feature_names, no_top_words):
 #    for topic_idx, topic in enumerate(model.components_):
@@ -44,25 +45,36 @@ def runSVM(x, y):
     clf.fit(x, y)
     SVC()
 
+# returns f1 score
 def multiClassSVM(vectors, df):
-    categories = ['anger', 'disgust', 'fear', 'happiness', 'sadness', 'surprise']
+    emotions = ['anger', 'disgust', 'fear', 'happiness', 'sadness', 'surprise']
     X_train, X_test, y_train, y_test= train_test_split(vectors, df, random_state=42, test_size=0.33, shuffle=True)
-    #X_train = train.vectors
-    #X_test = test.vectors
     print(X_train.shape)
     print(X_test.shape)
     SVC_pipeline = Pipeline([
                     #('tfidf', TfidfVectorizer(stop_words=stop_words)),
                     ('clf', OneVsRestClassifier(LinearSVC(), n_jobs=1)),
                 ])
-    for category in categories:
-        print('... Processing {}'.format(category))
+    accuracies = []
+    predictions = []
+    labels = []
+    for emotion_label in emotions:
+        print('... Processing {}'.format(emotion_label))
         # train the model using X_dtm & y
-        #print(X_train)
-        SVC_pipeline.fit(X_train, y_train[category])
+        SVC_pipeline.fit(X_train, y_train[emotion_label])
         # compute the testing accuracy
         prediction = SVC_pipeline.predict(X_test)
-        print('Test accuracy is {}'.format(accuracy_score(y_test[category], prediction)))
+        current_emo_f1 = f1_score(y_true=y_test[emotion_label], y_pred=prediction, labels=None, pos_label=1, average='binary', sample_weight=None, zero_division='warn')
+        print("%s f1 score: %f" %(emotion_label,current_emo_f1))
+        
+        # keep track of these to get total f1 score
+        predictions.extend(prediction)
+        labels.extend(y_test[emotion_label])
+        accuracies.append(current_emo_f1)
+
+    # return total f1 score
+    accuracy = f1_score(y_true=labels, y_pred=predictions, labels=None, pos_label=1, average='binary', sample_weight=None, zero_division='warn')
+    return accuracy
 
 def display_topics(H, W, feature_names, documents, no_top_words, no_top_documents):
     for topic_idx, topic in enumerate(H):
@@ -79,40 +91,22 @@ else:
     # run LDA for each file
     for fname in sys.argv[1:]:
         # create pandas dataframe of tweets
+        f1_scores = []
         df = pd.read_csv(fname)
         num_top_documents = len(df)
-        #tweet_vectors = np.ndarray(shape=(num_top_documents, num_topics), dtype=float, order='F')
+
         vectorizer = CountVectorizer()
         tf_vectorizer = CountVectorizer(max_df=0.95, min_df=2, max_features=num_features, stop_words='english')
         tf = tf_vectorizer.fit_transform(df["text"])
         tf_feature_names = tf_vectorizer.get_feature_names()
-        lda = LatentDirichletAllocation(n_components=num_topics, max_iter=20, learning_method='online', learning_offset=20.,random_state=0).fit(tf)
-        no_top_words = 20
-        # H, W, feature_names, documents, no_top_words, no_top_documents
-        lda_W = lda.transform(tf)
-        tweet_vectors = lda_W
-        vectors = []
-        #for v in tweet_vectors:
-        #    vectors.append((v))
-        #print(tweet_vectors)
-       # new_df = pd.DataFrame(vectors, columns = ['vectors'])
-        #for emotion in ['anger', 'disgust', 'fear', 'happiness', 'sadness', 'surprise']:
-        #    new_df[emotion] = df[emotion]
 
-        #runSVM(tweet_vectors, df[['anger', 'disgust', 'fear', 'happiness', 'sadness', 'surprise']] )
-        #print(tweet_vectors)
-        multiClassSVM(tweet_vectors, df)
-        #print(tweet_vectors)
-        #lda_H = lda.components_
-        #topic_keywords = show_topics(tf_vectorizer, lda, 20, sums, num_topics)  
-        #display_topics(lda_H, lda_W, tf_feature_names, df["text"], num_top_words, num_top_documents, tweet_vectors)
-        #df_topic_keywords = pd.DataFrame(topic_keywords)
-        #df_topic_keywords.columns = ['Word '+str(i) for i in range(df_topic_keywords.shape[1])]
-        #df_topic_keywords.index = ['Topic '+str(i) for i in range(df_topic_keywords.shape[0])]
-        #df_topic_keywords  
-        #print(df_topic_keywords)
-        #for key in sums:
-        #   print("num topics %d" %(key))
-            #df_topic_keywords.to_csv(fname + "_topics.csv", index=False)
+        # run LDA for each number of topics
+        for num_topics in topic_nums:
+            lda = LatentDirichletAllocation(n_components=num_topics, max_iter=50, learning_method='online', learning_offset=20.,random_state=0).fit(tf)
+            no_top_words = 20
+            lda_W = lda.transform(tf)
+            f1_scores.append(multiClassSVM(lda_W, df))
 
-        #display_topics(lda, tf_feature_names, no_top_words)
+        for i, f1_score in enumerate(f1_score):
+            print("%d topics %f accuracy" %(topic_nums[i], f1_score))
+            
