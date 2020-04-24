@@ -20,7 +20,11 @@ def removeHashtags(text):
 
 def removePunctuation(text):
     import string
-    return text.translate(str.maketrans('', '', string.punctuation))
+    import re
+    text =  text.translate(str.maketrans('', '', string.punctuation))
+    text = text.replace("…", "")
+    return text
+
 
 # use NLTK to remove stop words
 def removeStopWords(text):
